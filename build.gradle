@@ -1,0 +1,30 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+    id 'maven-publish'
+}
+sourceCompatibility = 1.8 // java 8
+targetCompatibility = 1.8
+group = 'org.haispace'
+version = '0.0.1'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+}
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
+kotlin {
+    jvmToolchain(8)
+}
