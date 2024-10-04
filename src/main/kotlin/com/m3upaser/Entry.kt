@@ -8,25 +8,27 @@ class Entry private constructor(
     val tvgShift: String? = null,
     val radio: String? = null,
     val channelUri: String? = null,
-    val channelName: String? = null
+    val channelName: String? = null,
+    val userAgent: String? = null
 ) {
 
     override fun toString(): String {
         return "Entry(duration='$duration', groupTitle='$groupTitle', tvgId='$tvgId', " +
                 "tvgName='$tvgName', tvgLogo='$tvgLogo', tvgShift='$tvgShift', " +
-                "radio='$radio', channelUri='$channelUri', channelName='$channelName')"
+                "radio='$radio', channelUri='$channelUri', channelName='$channelName', userAgent='$userAgent')"
     }
 
     class Builder {
-         var duration: String? = null
-         var groupTitle: String? = null
-         var tvgId: String? = null
-         var tvgName: String? = null
-         var tvgLogo: String? = null
-         var tvgShift: String? = null
-         var radio: String? = null
-         var channelUri: String? = null
-         var channelName: String? = null
+        var duration: String? = null
+        var groupTitle: String? = null
+        var tvgId: String? = null
+        var tvgName: String? = null
+        var tvgLogo: String? = null
+        var tvgShift: String? = null
+        var radio: String? = null
+        var channelUri: String? = null
+        var channelName: String? = null
+        var userAgent: String? = null
 
         fun duration(duration: String?) = apply { this.duration = duration }
         fun groupTitle(groupTitle: String?) = apply { this.groupTitle = groupTitle }
@@ -37,8 +39,8 @@ class Entry private constructor(
         fun radio(radio: String?) = apply { this.radio = radio }
         fun channelUri(channelUri: String?) = apply { this.channelUri = channelUri }
         fun channelName(channelName: String?) = apply { this.channelName = channelName }
-
-        fun build() = Entry(duration, groupTitle, tvgId, tvgName, tvgLogo, tvgShift, radio, channelUri, channelName)
+        fun userAgent(userAgent: String?) = apply { this.userAgent = userAgent }
+        fun build() = Entry(duration, groupTitle, tvgId, tvgName, tvgLogo, tvgShift, radio, channelUri, channelName,userAgent)
     }
 }
 

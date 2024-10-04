@@ -5,14 +5,15 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.regex.Pattern
-
 class Parser {
 
     companion object {
 
         private const val M3U_START_MARKER = "#EXTM3U"
         private const val M3U_INFO_MARKER = "#EXTINF:"
+        private const val M3U_USER_AGENT_MARKER = "#EXTVLCOPT:"
 
+        private val USER_AGENT_REGEX = Pattern.compile(".*user-agent=(.+)",Pattern.CASE_INSENSITIVE)
         private val DURATION_REGEX =
             Pattern.compile(".*#EXTINF:(.+?) .*", Pattern.CASE_INSENSITIVE)
         private val TVG_ID_REGEX =
@@ -30,48 +31,55 @@ class Parser {
         private val CHANNEL_NAME_REGEX = Pattern.compile(".*,(.+?)$", Pattern.CASE_INSENSITIVE)
     }
 
-     suspend fun parse(stream: InputStream): Collection<Entry> {
 
+    fun parse(stream: InputStream): Collection<Entry> {
 
-       try {
-           val entries = ArrayList<Entry>()
-           var lineNbr = 0
-           var line: String?
-           try {
-               val buffer = BufferedReader(InputStreamReader(stream))
-               line = buffer.readLine()
-               lineNbr++
-               checkStart(line)
-               val globalTvgShif: String? = extract(line, TVG_SHIFT_REGEX)
-               var entry: Entry.Builder? = null
+        try {
+            val entries = ArrayList<Entry>()
+            var lineNbr = 0
+            var line: String?
+            try {
+                val buffer = BufferedReader(InputStreamReader(stream))
+                line = buffer.readLine()
+                lineNbr++
+                checkStart(line)
+                val globalTvgShif: String? = extract(line, TVG_SHIFT_REGEX)
+                var entry: Entry.Builder? = null
+                var userAgent = ""
+                while (buffer.readLine().also { line = it } != null) {
+                    lineNbr++
+                    val lineFinal = line
+                    if (!lineFinal.isNullOrBlank()) {
+                        if (isExtInfo(lineFinal)) {
+                            entry = extractExtInfo(globalTvgShif, lineFinal)
+                        }
+                        else if(isUserAgentInfo(lineFinal)) {
+                            userAgent = extract(lineFinal, USER_AGENT_REGEX)?:""
+                        }
+                        else{
+                            if (entry == null) {
+                                throw ParsingException(lineNbr, "Missing $M3U_INFO_MARKER")
+                            }
 
-               while (buffer.readLine().also { line = it } != null) {
-                   lineNbr++
-                   val lineFinal = line
-                   if (!lineFinal.isNullOrBlank()) {
-                       if (isExtInfo(lineFinal)) {
-                           entry = extractExtInfo(globalTvgShif, lineFinal)
-                       } else {
-                           if (entry == null) {
-                               throw ParsingException(lineNbr, "Missing $M3U_INFO_MARKER")
-                           }
-                           val entryNew = entry.channelUri(lineFinal).build()
-                           if (!entryNew.groupTitle.isNullOrBlank()) {
-                               entries.add(entryNew)
-                           }
-                       }
-                   }
-               }
-           } catch (e: IOException) {
-               throw ParsingException(lineNbr, "Cannot read file", e)
-           }
-           return entries
-       }catch (e:Exception){
+                            val entryNew = entry.channelUri(Regex("(http[s]?://[^\\s]+)").find(lineFinal)?.value).userAgent(userAgent).build()
+                            if (!entryNew.groupTitle.isNullOrBlank()) {
+                                entries.add(entryNew)
+                            }
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                throw ParsingException(lineNbr, "Cannot read file", e)
+            }
+            return entries
+        }catch (e:Exception){
             e.printStackTrace()
-       }
+        }
         return listOf()
     }
-
+    private fun isUserAgentInfo(line : String) : Boolean{
+        return line.contains(M3U_USER_AGENT_MARKER)
+    }
     private fun checkStart(line: String?) {
         if (line != null) {
             if (!line.contains(M3U_START_MARKER)) {
@@ -85,7 +93,6 @@ class Parser {
     private fun isExtInfo(line: String): Boolean {
         return line.contains(M3U_INFO_MARKER)
     }
-
     private fun extractExtInfo(globalTvgShift: String?, line: String): Entry.Builder? {
         val duration: String? = extract(line, DURATION_REGEX)
         val tvgId: String? = extract(line, TVG_ID_REGEX)
